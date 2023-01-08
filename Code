@@ -1,0 +1,58 @@
+import sys
+import re
+
+
+def good_text(file):  # Удаляет из текста лишние элементы
+    text = ''
+    for line in file.readlines():
+        line = line.lower()  # Перевод всего текста в нижний регистр
+        if line.count('#') != 0:  # Удаление комментариев из кода
+        line = line[:line.index('#')]
+        line = re.split("[^'+-=/*_!:><,.()a-z\dё]+", line)  # Удаление всех элементов не указанных в квадратных скобках
+    text += ''.join(line)
+    return text
+
+
+def diff(a, b):  # Если 2 символа равны, возвращает 0, в противном случае 1
+    if a == b:
+        return 0
+    else:
+        return 1
+
+
+f = open(sys.argv[1], 'r')  # Открытие входного файлы
+f_new = open(sys.argv[2], 'w')  # Создание выхожного файла
+
+for string in f.readlines():
+    adr1, adr2 = string.split()
+    file1 = open('plagiat/' + adr1, 'r')  # Открытие первого файла
+    file2 = open('plagiat/' + adr2, 'r')  # Открытие второго файла
+
+    text1 = good_text(file1)  # Преобразование каждого файла
+    text2 = good_text(file2)
+
+    table = [[float('inf')] * len(text2) for _ in range(len(text1))]  # Создание двухмерной матрицы
+
+    for i in range(len(text1)):  # Заполнение матрицы по вертикали
+        table[i][0] = i
+
+    for j in range(len(text2)):  # Заполнение матрицы по горизонтали
+        table[0][j] = j
+
+    for i in range(1, len(text1)):  # Заполнение матрицы по алгоритму
+        for j in range(1, len(text2)):
+            if table[i][j] == float('inf'):
+                ins = table[i - 1][j] + 1
+                de = table[i][j - 1] + 1
+                sub = table[i - 1][j - 1] + diff(text1[i], text2[j])
+                table[i][j] = min(ins, de, sub)
+
+    # Рассчет оценки похожести 2 файлов
+    f_new.write("{:.2f}".format(1 - round((table[len(text1) - 1][len(text2) - 1])/len(max(text1, text2)), 2)) + '\n')
+
+    file1.close()
+    file2.close()
+
+f_new.close()
+f.close()
+# python compare.py input.txt scores.txt
